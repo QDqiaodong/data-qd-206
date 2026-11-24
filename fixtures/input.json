@@ -1,0 +1,31 @@
+{
+  "reference": [
+    {
+      "id": "s1",
+      "ra": "10",
+      "dec": "2",
+      "magnitude": "5"
+    },
+    {
+      "id": "s2",
+      "ra": "20",
+      "dec": "2",
+      "magnitude": "6"
+    }
+  ],
+  "observations": [
+    {
+      "id": "o1",
+      "ra": "10.1",
+      "dec": "2",
+      "sigma": "0.2"
+    },
+    {
+      "id": "o2",
+      "ra": "15",
+      "dec": "2",
+      "sigma": "1"
+    }
+  ],
+  "threshold": "1"
+}
