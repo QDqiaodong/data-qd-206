@@ -1,6 +1,6 @@
 # data-qd-206 · 天文源目录与不确定性匹配
 
-将观测源按位置误差椭圆与参考目录匹配，保留唯一、歧义和无匹配候选；不做图像标定。
+将观测源按球面角距离和各向同性角误差与参考目录匹配，保留唯一、歧义和无匹配候选；不做图像标定。
 
 本仓主要交付是Python业务API和可供下游使用的结构化数据，不是通用CLI、报表或CRUD模板。字段、身份、单位、上限与失败边界见 [数据契约](docs/contract.md)。
 
@@ -31,7 +31,7 @@ publish("run/another.json", process(load("fixtures/input.json")))
 {"ambiguous": 0, "matched": 1, "observations": 2, "reference": 2, "unmatched": 1}
 ```
 
-已通过 6 项业务测试，并核对非法输入拒绝；样例数据全部原创合成，见 [来源](fixtures/SOURCES.md)。
+已通过 7 项业务测试，并核对非法输入拒绝；样例数据全部原创合成，见 [来源](fixtures/SOURCES.md)。
 
 ## 边界
 
