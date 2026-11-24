@@ -2,6 +2,8 @@
 
 将观测源按球面角距离和各向同性角误差与参考目录匹配，保留唯一、歧义和无匹配候选；不做图像标定。另提供多次曝光整批接口 `process_exposures`：曝光内一对一关联（最大配对、最小角距代价）、基于定标锚点的逐曝光测光零点与校正星等。
 
+新增离线 `solve_astrometry(data)`：从显式切点和控制星建立 gnomonic 投影上的六参数二维仿射解，执行确定性稳健共识、歧义识别和最终内点凸包责任判定，再转换科学检测 RA/Dec。详见 [二维仿射天体测量契约](docs/astrometry.md)。
+
 另提供仅依赖标准库的离线跟拍工作簿 `FollowUpWorkbook` / `create_workbook` / `open_workbook`：持久化测光批次、整批质量更正、精确符号检验与 BH 校正、按观测组优先序维护带永久令牌的待执行指令，并登记不可撤销、可幂等重试的实拍记录。详见 [离线跟拍工作簿契约](docs/followup.md)。
 
 本仓主要交付是Python业务API和可供下游使用的结构化数据，不是通用CLI、报表或CRUD模板。字段、身份、单位、上限与失败边界见 [数据契约](docs/contract.md)。
@@ -21,12 +23,15 @@ uv pip check --python .venv/bin/python
 .venv/bin/python -I examples/run_followup.py
 ```
 
-上述命令已在本地缓存和独立环境真实执行；样例输出写入 `run/sample.json` 与 `run/exposures.json`，已有目标拒绝覆盖。若暂不安装，也可在仓库根目录运行 `python3 -I run_tests.py` 执行全部 30 项标准库测试，或直接运行 `python3 -I examples/run_followup.py`。API可这样调用：
+上述命令已在本地缓存和独立环境真实执行；样例输出写入 `run/sample.json` 与 `run/exposures.json`，已有目标拒绝覆盖。若暂不安装，也可在仓库根目录运行 `python3 -I run_tests.py` 执行全部 41 项标准库测试，或直接运行 `python3 -I examples/run_followup.py`。天体测量离线示例可运行 `python3 -I examples/run_astrometry.py`（脚本自行注入 `src/`，输出 `run/astrometry.json`）。API可这样调用：
 
 ```python
-from star_crossmatch import process, process_exposures
+from star_crossmatch import process, process_exposures, solve_astrometry
 from star_crossmatch.io import load, publish
 publish("run/another.json", process(load("fixtures/input.json")))
+
+# astrometry_input 的完整字段见 docs/astrometry.md
+astrometry_result = solve_astrometry(astrometry_input)
 ```
 
 跟拍工作簿使用本地 JSON 持久化，关闭后可用 `open_workbook(path)` 重开：

@@ -17,3 +17,11 @@
 零点有效时，仅在几何最优方案中再比较所有已配对检测的|校正星等−参考星等|之和，保留和最小的全部方案；零点无效时保留全部几何最优方案。测光改变的关联不回流参与本次定标。
 
 输出为可JSON序列化对象{"exposures":[...]}，曝光按曝光ID字典序。每曝光：exposure（ID）；calibration={status（calibrated/insufficient_anchors/no_consensus）、zero_point（十进制字符串或null）、anchors}，anchors为用于判断的全部锚点（含未支持中位数的锚点），每项{observation、reference、offset（十进制字符串）}，按（检测ID，参考ID）排序；detections按检测ID字典序。每检测：observation（ID）；candidates为全部几何候选，每项{reference、distance（浮点字符串，同process）、cost（整数毫角秒）}，按（角距，参考ID）排序；possible为最终最优方案中可能配到的参考星ID列表，按ID排序；may_be_unassigned表示是否存在让其未分配的最优方案；selected仅当possible唯一且may_be_unassigned=false时为该参考星ID，否则为null；status为matched（已选中）、ambiguous（最优方案之间有歧义）、unassigned（有几何候选但任何最优方案都不配对）、unmatched（无几何候选）之一；corrected_magnitude为十进制字符串或null。按证据身份比较时，重排输入的参考行、曝光或检测行不改变输出。
+
+# 二维仿射天体测量契约（solve_astrometry）
+
+新增 `solve_astrometry(data)`：输入 `tangent_point={ra,dec}`、`controls=[{id,x,y,ra,dec}]`、`detections=[{id,x,y}]`、正十进制字符串 `residual_limit_arcsec` 和整数 `min_inliers`。ID/十进制语法/字段严格性/数组与坐标边界沿用本文件前述约定；控制星与检测 ID 分别唯一。切点必须显式给出，本 API 不从探测器坐标反求指向。
+
+控制星 RA/Dec 先以切点为中心做 gnomonic 投影得到度单位 `xi,eta`，再拟合 `xi=a*x+b*y+c`、`eta=d*x+e*y+f`。确定性共识按 ID 排序，小控制星集穷举非共线三元组，大集合使用文档固定种子的可复现抽样；以最终仿射解的球面角残差 `<=residual_limit_arcsec` 认定内点，全部内点 LS 重拟合至集合稳定。合格解先比内点数、再比内点残差平方和。同分最佳解若对任一检测的球面位置差严格超过残差上限，返回 `status="ambiguous_solution"`；秩不足为 `rank_deficient`，合格内点不足为 `insufficient_inliers`。
+
+有效解仅负责最终内点探测器坐标的精确 Fraction 凸包（含边界）：内部/边界检测返回归一到 `[0,360)` 的 RA/Dec，凸包外检测为 `outside_footprint` 且坐标 null；无有效解时所有检测坐标 null。控制星与检测均按 ID 排序，输出投影坐标、角秒残差、内点状态、仿射参数和检测状态。完整字段、序列化、候选/平局排序和示例见 [二维仿射天体测量契约](astrometry.md)。

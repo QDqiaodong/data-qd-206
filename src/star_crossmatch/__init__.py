@@ -1,6 +1,7 @@
-"""天文目录匹配、多次曝光整合与离线跟拍工作簿 API."""
+"""天文目录匹配、多次曝光整合、天体测量解算与离线跟拍工作簿 API."""
 from .service import process
 from .exposures import process_exposures
+from .astrometry import solve_astrometry
 from .followup import (
     FollowUpConflict,
     FollowUpError,
@@ -20,6 +21,7 @@ from .followup import (
 __all__ = [
     "process",
     "process_exposures",
+    "solve_astrometry",
     "FollowUpWorkbook",
     "FollowupWorkbook",
     "Workbook",
