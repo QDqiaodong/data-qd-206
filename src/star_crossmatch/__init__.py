@@ -2,6 +2,12 @@
 from .service import process
 from .exposures import process_exposures
 from .astrometry import solve_astrometry
+from .release import (
+    FORMAT as PHOTOMETRIC_RELEASE_FORMAT,
+    PhotometricRelease,
+    assess_fade,
+    build_photometric_release,
+)
 from .followup import (
     FollowUpConflict,
     FollowUpError,
@@ -22,6 +28,10 @@ __all__ = [
     "process",
     "process_exposures",
     "solve_astrometry",
+    "build_photometric_release",
+    "assess_fade",
+    "PhotometricRelease",
+    "PHOTOMETRIC_RELEASE_FORMAT",
     "FollowUpWorkbook",
     "FollowupWorkbook",
     "Workbook",

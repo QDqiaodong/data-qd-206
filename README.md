@@ -6,6 +6,8 @@
 
 另提供仅依赖标准库的离线跟拍工作簿 `FollowUpWorkbook` / `create_workbook` / `open_workbook`：持久化测光批次、整批质量更正、精确符号检验与 BH 校正、按观测组优先序维护带永久令牌的待执行指令，并登记不可撤销、可幂等重试的实拍记录。详见 [离线跟拍工作簿契约](docs/followup.md)。
 
+新增离线测光发布件 `build_photometric_release(data)` / `assess_fade(release, query)`：以几何最优方案签发可信实测、核验清洁的未检出灵敏度证明、按转移连通分量枚举零点故障假设（不删或恰好删一条），并仅用发布件在新进程里给出精确有理、可复核、可追溯检测 ID 的变暗下界与确认结论。发布件为版本化 JSON，不含原始曝光行、坐标或候选边表。详见 [测光发布件契约](docs/release.md)。
+
 本仓主要交付是Python业务API和可供下游使用的结构化数据，不是通用CLI、报表或CRUD模板。字段、身份、单位、上限与失败边界见 [数据契约](docs/contract.md)。
 
 ## 安装与验证
@@ -21,14 +23,20 @@ uv pip check --python .venv/bin/python
 .venv/bin/python -I examples/run_sample.py
 .venv/bin/python -I examples/run_exposures.py
 .venv/bin/python -I examples/run_followup.py
+.venv/bin/python -I examples/run_release.py
 ```
 
-上述命令已在本地缓存和独立环境真实执行；样例输出写入 `run/sample.json` 与 `run/exposures.json`，已有目标拒绝覆盖。若暂不安装，也可在仓库根目录运行 `python3 -I run_tests.py` 执行全部 41 项标准库测试，或直接运行 `python3 -I examples/run_followup.py`。天体测量离线示例可运行 `python3 -I examples/run_astrometry.py`（脚本自行注入 `src/`，输出 `run/astrometry.json`）。API可这样调用：
+上述命令已在本地缓存和独立环境真实执行；样例输出写入 `run/sample.json`、`run/exposures.json` 与 `run/photometric_release.json`，已有目标拒绝覆盖。若暂不安装，也可在仓库根目录运行 `python3 -I run_tests.py` 执行全部标准库测试，或直接运行 `python3 -I examples/run_followup.py`。天体测量离线示例可运行 `python3 -I examples/run_astrometry.py`（脚本自行注入 `src/`，输出 `run/astrometry.json`）。API可这样调用：
 
 ```python
 from star_crossmatch import process, process_exposures, solve_astrometry
+from star_crossmatch import build_photometric_release, assess_fade
 from star_crossmatch.io import load, publish
 publish("run/another.json", process(load("fixtures/input.json")))
+
+# 发布件可 json.dumps 后交接;交接方在新进程仅凭 JSON 即可 assess_fade
+release = build_photometric_release(batch_with_epochs_transfers_limits)
+verdict = assess_fade(json.loads(json.dumps(release)), fade_query)
 
 # astrometry_input 的完整字段见 docs/astrometry.md
 astrometry_result = solve_astrometry(astrometry_input)

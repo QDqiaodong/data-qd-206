@@ -264,3 +264,66 @@ def process_exposures(data):
     out=[_process_exposure(e,threshold,tolerance,reference) for e in exposures]
     out.sort(key=lambda x:x['exposure'])
     return {'exposures':out}
+
+def _geometric_evidence(threshold,tolerance,reference,exposures):
+    """只按几何最优方案签发身份,供测光发布件使用。
+
+    与 ``_process_exposure`` 共用同一套候选半径、整数角距代价、最小费用流与
+    零费用残差环流刻画,但完全不做星等破平局:一条参考源-检测边当且仅当在
+    *所有*几何最优方案中都被选用(flow=1 且 can0=False)时,才把该检测签给
+    该参考源。返回每帧的几何强制配对(含原始仪器星等)、每个参考源的原始
+    几何候选检测 ID 集合,以及完全沿用原锚点规则得到的有效绝对零点(无效为
+    None)。转移零点不回流改变锚点或身份。
+    """
+    out=[]
+    for exp in exposures:
+        observations=exp['observations'];n=len(observations)
+        refs=sorted(reference.items());m=len(refs)
+        candidates=[]
+        for o in observations:
+            radius=threshold*o['sigma'];entries=[]
+            for rid,(ra,dec,mag,cal) in refs:
+                dist=_distance(o['ra'],o['dec'],ra,dec)
+                if dist<=radius:entries.append((dist,rid,floor(dist*3600000+0.5)))
+            entries.sort(key=lambda z:(z[0],z[1]))
+            candidates.append(entries)
+        size=n+m+2;source=0;sink=size-1
+        refnode={rid:1+n+j for j,(rid,_) in enumerate(refs)}
+        zero=(0,);arcs=[];kind=[]
+        for i in range(n):
+            arcs.append((source,1+i,zero));kind.append(('s',i))
+        for i in range(n):
+            for dist,rid,cost in candidates[i]:
+                arcs.append((1+i,refnode[rid],(cost,)));kind.append(('c',i,rid))
+        for j,(rid,_) in enumerate(refs):
+            arcs.append((1+n+j,sink,zero));kind.append(('r',j))
+        graph,potential,located=_min_cost_max_flow(size,arcs,source,sink,zero)
+        potential=_feasible_potential(graph,zero)
+        comp=_zero_components(graph,potential,zero)
+        states=[_arc_states(graph,potential,comp,zero,u,pos) for u,pos in located]
+        forced={}
+        for idx,(tag,*rest) in enumerate(kind):
+            if tag=='c':
+                i,rid=rest
+                flow,can1,can0=states[idx]
+                if flow and not can0:
+                    forced[rid]=(observations[i]['id'],observations[i]['instrumental'])
+        incidence={}
+        for i,entries in enumerate(candidates):
+            for dist,rid,cost in entries:
+                incidence.setdefault(rid,set()).add(observations[i]['id'])
+        anchors=[]
+        for rid,(oid,instr) in forced.items():
+            if reference[rid][3]:
+                anchors.append((oid,rid,reference[rid][2]-instr))
+        zeropoint=None
+        if len(anchors)>=3:
+            offs=sorted(a[2] for a in anchors);q=len(offs)
+            median=offs[q//2] if q%2 else (offs[q//2-1]+offs[q//2])/2
+            supporters=sum(1 for a in anchors if abs(a[2]-median)<=tolerance)
+            if supporters>=3 and 2*supporters>len(anchors):
+                zeropoint=median
+        out.append({'exposure':exp['id'],'forced':forced,
+            'incidence':{rid:sorted(ids) for rid,ids in incidence.items()},
+            'zero_point':zeropoint})
+    return out
