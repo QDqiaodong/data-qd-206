@@ -2,6 +2,8 @@
 
 将观测源按球面角距离和各向同性角误差与参考目录匹配，保留唯一、歧义和无匹配候选；不做图像标定。另提供多次曝光整批接口 `process_exposures`：曝光内一对一关联（最大配对、最小角距代价）、基于定标锚点的逐曝光测光零点与校正星等。
 
+另提供仅依赖标准库的离线跟拍工作簿 `FollowUpWorkbook` / `create_workbook` / `open_workbook`：持久化测光批次、整批质量更正、精确符号检验与 BH 校正、按观测组优先序维护带永久令牌的待执行指令，并登记不可撤销、可幂等重试的实拍记录。详见 [离线跟拍工作簿契约](docs/followup.md)。
+
 本仓主要交付是Python业务API和可供下游使用的结构化数据，不是通用CLI、报表或CRUD模板。字段、身份、单位、上限与失败边界见 [数据契约](docs/contract.md)。
 
 ## 安装与验证
@@ -16,9 +18,10 @@ uv pip check --python .venv/bin/python
 .venv/bin/python -I -m unittest discover -s tests -v
 .venv/bin/python -I examples/run_sample.py
 .venv/bin/python -I examples/run_exposures.py
+.venv/bin/python -I examples/run_followup.py
 ```
 
-上述命令已在本地缓存和独立环境真实执行；样例输出写入 `run/sample.json` 与 `run/exposures.json`，已有目标拒绝覆盖。API可这样调用：
+上述命令已在本地缓存和独立环境真实执行；样例输出写入 `run/sample.json` 与 `run/exposures.json`，已有目标拒绝覆盖。若暂不安装，也可在仓库根目录运行 `python3 -I run_tests.py` 执行全部 30 项标准库测试，或直接运行 `python3 -I examples/run_followup.py`。API可这样调用：
 
 ```python
 from star_crossmatch import process, process_exposures
@@ -26,13 +29,30 @@ from star_crossmatch.io import load, publish
 publish("run/another.json", process(load("fixtures/input.json")))
 ```
 
+跟拍工作簿使用本地 JSON 持久化，关闭后可用 `open_workbook(path)` 重开：
+
+```python
+from star_crossmatch import create_workbook, open_workbook
+
+wb = create_workbook("run/followup.json", batch)
+print(wb.candidate_results())       # 各源 n/k/p/q 与候选/证据不足状态
+print(wb.pending_instructions())    # 带永久令牌和发令证据的待执行指令
+receipt = wb.record_execution(token, "shot-record-id")
+wb.update_quality_flags([{"measurement_id": "m1", "usable": False}])
+wb.close()
+wb = open_workbook("run/followup.json")
+```
+
+完整字段、精确有理数口径、撤销/新发规则和冲突身份处理见
+[docs/followup.md](docs/followup.md)。
+
 样例摘要：
 
 ```json
 {"ambiguous": 0, "matched": 1, "observations": 2, "reference": 2, "unmatched": 1}
 ```
 
-已通过 20 项业务测试（含多次曝光关联、定标零点、并列方案证据与暴力枚举对照），并核对非法输入拒绝；样例数据全部原创合成，见 [来源](fixtures/SOURCES.md)。
+现有匹配、多次曝光与离线跟拍业务测试均通过（含完整容量 2 验收剧本、精确有理数边界、重开持久化和冲突身份），并核对非法输入拒绝；样例数据全部原创合成，见 [来源](fixtures/SOURCES.md)。
 
 ## 边界
 
