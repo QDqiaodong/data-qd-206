@@ -181,8 +181,9 @@ def _validate(data):
     if not 1<=total<=2000:raise ValueError('total observations 1..2000 required')
     return threshold,tolerance,reference,exposures
 
-def _process_exposure(exp,threshold,tolerance,reference):
+def _process_exposure(exp,threshold,tolerance,reference,anchor_blocked=None):
     observations=exp['observations'];n=len(observations)
+    blocked_anchors=set() if anchor_blocked is None else set(anchor_blocked)
     refs=sorted(reference.items());m=len(refs)
     candidates=[]
     for o in observations:
@@ -217,7 +218,7 @@ def _process_exposure(exp,threshold,tolerance,reference):
         if tag=='c':
             i,rid=rest
             flow,can1,can0=states[idx]
-            if flow and not can0 and reference[rid][3]:
+            if flow and not can0 and reference[rid][3] and observations[i]['id'] not in blocked_anchors:
                 anchors.append((observations[i]['id'],rid,reference[rid][2]-observations[i]['instrumental']))
     zeropoint=None
     if len(anchors)>=3:

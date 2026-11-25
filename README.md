@@ -2,6 +2,8 @@
 
 将观测源按球面角距离和各向同性角误差与参考目录匹配，保留唯一、歧义和无匹配候选；不做图像标定。另提供多次曝光整批接口 `process_exposures`：曝光内一对一关联（最大配对、最小角距代价）、基于定标锚点的逐曝光测光零点与校正星等。
 
+新增三帧巡天接口 `reduce_moving_cadence`：按实际 MJD 和精确有理平面几何判定移动轨迹候选，求解有规模上限的冲突分量，审计每条检测在全部最佳方案中的使用状态及强制使用/禁用反事实，并把必用移动检测从静态测光输入剔除、把歧义检测的配对排除出零点锚点后重跑 `process_exposures` 规则。详见 [三帧移动巡天归约契约](docs/moving_cadence.md)。
+
 新增离线 `solve_astrometry(data)`：从显式切点和控制星建立 gnomonic 投影上的六参数二维仿射解，执行确定性稳健共识、歧义识别和最终内点凸包责任判定，再转换科学检测 RA/Dec。详见 [二维仿射天体测量契约](docs/astrometry.md)。
 
 另提供仅依赖标准库的离线跟拍工作簿 `FollowUpWorkbook` / `create_workbook` / `open_workbook`：持久化测光批次、整批质量更正、精确符号检验与 BH 校正、按观测组优先序维护带永久令牌的待执行指令，并登记不可撤销、可幂等重试的实拍记录。详见 [离线跟拍工作簿契约](docs/followup.md)。
@@ -22,14 +24,15 @@ uv pip check --python .venv/bin/python
 .venv/bin/python -I -m unittest discover -s tests -v
 .venv/bin/python -I examples/run_sample.py
 .venv/bin/python -I examples/run_exposures.py
+.venv/bin/python -I examples/run_moving_cadence.py
 .venv/bin/python -I examples/run_followup.py
 .venv/bin/python -I examples/run_release.py
 ```
 
-上述命令已在本地缓存和独立环境真实执行；样例输出写入 `run/sample.json`、`run/exposures.json` 与 `run/photometric_release.json`，已有目标拒绝覆盖。若暂不安装，也可在仓库根目录运行 `python3 -I run_tests.py` 执行全部标准库测试，或直接运行 `python3 -I examples/run_followup.py`。天体测量离线示例可运行 `python3 -I examples/run_astrometry.py`（脚本自行注入 `src/`，输出 `run/astrometry.json`）。API可这样调用：
+上述命令已在本地缓存和独立环境真实执行；样例输出写入 `run/sample.json`、`run/exposures.json`、`run/moving_cadence.json` 与 `run/photometric_release.json`，已有目标拒绝覆盖。若暂不安装，也可在仓库根目录运行 `python3 -I run_tests.py` 执行全部标准库测试，或直接运行 `python3 -I examples/run_followup.py`。三帧移动归约示例可运行 `python3 -I examples/run_moving_cadence.py`。天体测量离线示例可运行 `python3 -I examples/run_astrometry.py`（脚本自行注入 `src/`，输出 `run/astrometry.json`）。API可这样调用：
 
 ```python
-from star_crossmatch import process, process_exposures, solve_astrometry
+from star_crossmatch import process, process_exposures, reduce_moving_cadence, solve_astrometry
 from star_crossmatch import build_photometric_release, assess_fade
 from star_crossmatch.io import load, publish
 publish("run/another.json", process(load("fixtures/input.json")))

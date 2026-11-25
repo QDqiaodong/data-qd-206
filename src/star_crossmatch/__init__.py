@@ -1,6 +1,7 @@
 """天文目录匹配、多次曝光整合、天体测量解算与离线跟拍工作簿 API."""
 from .service import process
 from .exposures import process_exposures
+from .moving_cadence import reduce_moving_cadence
 from .astrometry import solve_astrometry
 from .release import (
     FORMAT as PHOTOMETRIC_RELEASE_FORMAT,
@@ -27,6 +28,7 @@ from .followup import (
 __all__ = [
     "process",
     "process_exposures",
+    "reduce_moving_cadence",
     "solve_astrometry",
     "build_photometric_release",
     "assess_fade",

@@ -18,6 +18,12 @@
 
 输出为可JSON序列化对象{"exposures":[...]}，曝光按曝光ID字典序。每曝光：exposure（ID）；calibration={status（calibrated/insufficient_anchors/no_consensus）、zero_point（十进制字符串或null）、anchors}，anchors为用于判断的全部锚点（含未支持中位数的锚点），每项{observation、reference、offset（十进制字符串）}，按（检测ID，参考ID）排序；detections按检测ID字典序。每检测：observation（ID）；candidates为全部几何候选，每项{reference、distance（浮点字符串，同process）、cost（整数毫角秒）}，按（角距，参考ID）排序；possible为最终最优方案中可能配到的参考星ID列表，按ID排序；may_be_unassigned表示是否存在让其未分配的最优方案；selected仅当possible唯一且may_be_unassigned=false时为该参考星ID，否则为null；status为matched（已选中）、ambiguous（最优方案之间有歧义）、unassigned（有几何候选但任何最优方案都不配对）、unmatched（无几何候选）之一；corrected_magnitude为十进制字符串或null。按证据身份比较时，重排输入的参考行、曝光或检测行不改变输出。
 
+# 三帧移动轨迹归约与静态测光交接（reduce_moving_cadence）
+
+新增 `reduce_moving_cadence(data)`：输入恰含 `photometry`、`epochs`、`positions`、`min_speed`、`max_speed`、`middle_tolerance`。`photometry` 复用 `process_exposures` 契约，但额外限定恰好 3 帧、每帧 1..120 检测、1..256 参考源；`epochs` 按实际 MJD 确定早/中/晚，`positions` 给出统一平面角秒坐标。候选由早/中/晚各一条检测组成，精确校验端点速度闭区间和实际 MJD 线性插值容差，代价为中间残差平方的约分有理数字符串。共享检测的候选构成冲突分量，每分量参与候选的不同检测不得超过 15 条，超限整批 `ValueError`。
+
+每个分量先最大化轨迹数、再最小化总代价。检测审计区分每个最佳方案必用、部分方案使用和无最佳方案使用，并给出参与候选检测在“硬要使用/硬要不用”约束下的分量最佳值及完整见证。必用检测从静态测光输入剔除；部分方案使用的检测保留并参与配对/校正，但其配对不得作为零点锚点；其余检测不受限。静态结果在剔除后的输入上重跑原球面候选、整数角距代价、一对一几何最优、锚点/零点和星等破平局规则。完整 JSON 字段、见证格式、排序和示例见 [三帧移动巡天归约契约](moving_cadence.md)。
+
 # 二维仿射天体测量契约（solve_astrometry）
 
 新增 `solve_astrometry(data)`：输入 `tangent_point={ra,dec}`、`controls=[{id,x,y,ra,dec}]`、`detections=[{id,x,y}]`、正十进制字符串 `residual_limit_arcsec` 和整数 `min_inliers`。ID/十进制语法/字段严格性/数组与坐标边界沿用本文件前述约定；控制星与检测 ID 分别唯一。切点必须显式给出，本 API 不从探测器坐标反求指向。
