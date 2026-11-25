@@ -3,6 +3,10 @@ from .service import process
 from .exposures import process_exposures
 from .moving_cadence import reduce_moving_cadence
 from .astrometry import solve_astrometry
+from .distance_catalog import (
+    DISTANCE_CATALOG_FORMAT,
+    infer_distance_catalog,
+)
 from .release import (
     FORMAT as PHOTOMETRIC_RELEASE_FORMAT,
     PhotometricRelease,
@@ -30,6 +34,8 @@ __all__ = [
     "process_exposures",
     "reduce_moving_cadence",
     "solve_astrometry",
+    "infer_distance_catalog",
+    "DISTANCE_CATALOG_FORMAT",
     "build_photometric_release",
     "assess_fade",
     "PhotometricRelease",

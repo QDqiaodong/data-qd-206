@@ -10,6 +10,8 @@
 
 新增离线测光发布件 `build_photometric_release(data)` / `assess_fade(release, query)`：以几何最优方案签发可信实测、核验清洁的未检出灵敏度证明、按转移连通分量枚举零点故障假设（不删或恰好删一条），并仅用发布件在新进程里给出精确有理、可复核、可追溯检测 ID 的变暗下界与确认结论。发布件为版本化 JSON，不含原始曝光行、坐标或候选边表。详见 [测光发布件契约](docs/release.md)。
 
+新增离线 `infer_distance_catalog(data)`：把整批带符号视差与一个全批共享的加性视差零点联合贝叶斯建模，返回每个源的距离后验中位数与等尾 68.27% 可信区间、零点后验均值/标准差，以及指定源对 `r_nearer < r_farther` 的后验概率。视差允许为负或零、距离始终严格为正，绝不取 `1000/parallax`；数值在对数域用确定性自适应 Simpson 求积，离线测试另以独立 Gauss-Legendre oracle 固定数值交叉验证。详见 [整批视差贝叶斯距离契约](docs/distance_catalog.md)。
+
 本仓主要交付是Python业务API和可供下游使用的结构化数据，不是通用CLI、报表或CRUD模板。字段、身份、单位、上限与失败边界见 [数据契约](docs/contract.md)。
 
 ## 安装与验证
@@ -27,6 +29,7 @@ uv pip check --python .venv/bin/python
 .venv/bin/python -I examples/run_moving_cadence.py
 .venv/bin/python -I examples/run_followup.py
 .venv/bin/python -I examples/run_release.py
+.venv/bin/python -I examples/run_distance_catalog.py
 ```
 
 上述命令已在本地缓存和独立环境真实执行；样例输出写入 `run/sample.json`、`run/exposures.json`、`run/moving_cadence.json` 与 `run/photometric_release.json`，已有目标拒绝覆盖。若暂不安装，也可在仓库根目录运行 `python3 -I run_tests.py` 执行全部标准库测试，或直接运行 `python3 -I examples/run_followup.py`。三帧移动归约示例可运行 `python3 -I examples/run_moving_cadence.py`。天体测量离线示例可运行 `python3 -I examples/run_astrometry.py`（脚本自行注入 `src/`，输出 `run/astrometry.json`）。API可这样调用：
@@ -34,6 +37,7 @@ uv pip check --python .venv/bin/python
 ```python
 from star_crossmatch import process, process_exposures, reduce_moving_cadence, solve_astrometry
 from star_crossmatch import build_photometric_release, assess_fade
+from star_crossmatch import infer_distance_catalog
 from star_crossmatch.io import load, publish
 publish("run/another.json", process(load("fixtures/input.json")))
 

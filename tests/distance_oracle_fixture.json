@@ -1,0 +1,54 @@
+{
+  "input": {
+    "scale_length_pc": "1200",
+    "zero_point": {
+      "mean_mas": "0.08",
+      "sigma_mas": "0.15"
+    },
+    "sources": [
+      {
+        "id": "A",
+        "parallax_mas": "-0.20",
+        "sigma_mas": "0.50"
+      },
+      {
+        "id": "B",
+        "parallax_mas": "0.75",
+        "sigma_mas": "0.35"
+      }
+    ],
+    "pairs": [
+      {
+        "id": "A-before-B",
+        "nearer": "A",
+        "farther": "B"
+      }
+    ]
+  },
+  "oracle": {
+    "zero_point": {
+      "mean_mas": 0.07404810468702436,
+      "sigma_mas": 0.13755570581514895
+    },
+    "sources": {
+      "A": {
+        "median_pc": 4044.9665964158735,
+        "ci_lower_pc": 2482.275569581401,
+        "ci_upper_pc": 6387.962519542306
+      },
+      "B": {
+        "median_pc": 2601.390026026361,
+        "ci_lower_pc": 1501.2659858230688,
+        "ci_upper_pc": 4604.4870045275975
+      }
+    },
+    "pairs": {
+      "A-before-B": 0.7222563289560899
+    }
+  },
+  "provenance": {
+    "engine": "tests/_distance_oracle.py adaptive Gauss-Legendre (GL16 vs GL32) in s=ln r with a trapezoidal z grid",
+    "independence": "separate integrator and variable from production adaptive Simpson in s=ln(1000/r); does not import or call infer_distance_catalog",
+    "convergence": "z_n=401; panel tolerance 1e-12; doubling z_n and tightening panels changes quantiles below 1e-8 pc and pair below 1e-12"
+  }
+}

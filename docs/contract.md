@@ -35,3 +35,9 @@
 # 测光发布件与变暗判据契约（build_photometric_release / assess_fade）
 
 新增 `build_photometric_release(data)` 与 `assess_fade(release, query)`：在 `process_exposures` 的几何最优方案与锚点规则之上，叠加历元、有向转移记录与灵敏度证明，产出版本化、可 JSON 往返、可跨进程离线查询的测光发布件。检测身份只认所有几何最优方案中都锁定的同一条检测（不做星等破平局）；灵敏度证明一旦被任一原始几何候选命中即不可用作未检出证据。转移按无向连通分量建模，自洽分量只保留“不排除”假设，矛盾分量枚举全部可行的单条排除假设，需排除两条及以上者标为无解且不阻塞别组；帧零点仅在分量内每个可行假设给出同一确定绝对值时发布。`assess_fade` 按“观测证据门→定标门→联合假设→精确有理变暗下界”的固定顺序给出可区分、可追溯的结论。输入规模（1..32 曝光、1..256 参考源、全批 1..2000 检测、0..128 转移、0..5000 极限行）、发布件 JSON 结构、状态枚举、并列规则与交接方式见 [测光发布件契约](release.md)。
+
+# 整批视差贝叶斯距离推断契约（infer_distance_catalog）
+
+新增 `infer_distance_catalog(data)`：输入恰含 `sources`（1..64 行 `id/parallax_mas/sigma_mas`，视差可带符号、标准差严格为正）、`zero_point`（`mean_mas/sigma_mas`，后者非负且允许 0）、正十进制 `scale_length_pc`、`pairs`（0..256 行 `id/nearer/farther`，端点为不同的已声明源）。模型为共享加性零点 `z ~ Normal(mean,sigma^2)`、距离先验 `p(r|L)=r^2 exp(-r/L)/(2L^3)`、视差 `y_i ~ Normal(1000/r_i+z, sigma_i^2)`；所有源经同一 `z` 耦合，逐源输出是全目录联合后验的边缘，绝不是固定零点均值后的独立拟合。`sigma_mas=0` 按点质量极限处理。
+
+数值在 `u=1000/r`、`s=ln u` 换元后用确定性自适应 Simpson（对数域相对峰值取指数、全局误差预算、尾部相对对数密度截断 -46）与零点嵌套复合 Simpson 完成；分位数由混合 CDF 二分反演，pair 概率按 `r_n<r_f ⇔ u_n>u_f` 用生存函数积分。距离分位数收敛阈值 8e-5 pc（交付容差 1e-4 pc），pair 概率误差 ≤1e-5；非有限值、非正归一化常数或触顶不收敛抛 `ValueError`，不返回部分结果。输出版本化 `star-crossmatch-distance-catalog/1`，含零点后验 `mean_mas/sigma_mas`、按 source id 排序的 `median_pc/ci_lower_pc/ci_upper_pc`（等尾 68.27%，分位点 0.15865/0.5/0.84135，有限、为正、严格有序）、按 pair id 排序的 `probability`。完整字段、数值策略与独立 oracle 交叉验证见 [整批视差贝叶斯距离契约](distance_catalog.md)。
